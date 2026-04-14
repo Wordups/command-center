@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brian — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f7f7f7;
+    --border: #e0e0e0;
+    --accent: #1a56db;
+    --accent2: #16a34a;
+    --accent3: #dc2626;
+    --text: #111111;
+    --muted: #888888;
+    --dim: #e8e8e8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 24px 20px;
+  }
+
+  /* Subtle noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.15;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+  }
+
+  .title-block h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .title-block h1 span { color: var(--accent); }
+
+  .title-block p {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .week-selector {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .week-selector .week-label {
+    color: var(--accent);
+    font-weight: 500;
+    display: block;
+    font-size: 14px;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .stat {
+    background: var(--surface);
+    padding: 16px;
+    position: relative;
+  }
+
+  .stat::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+    transform-origin: left;
+  }
+
+  .stat.green::after { background: var(--accent2); }
+  .stat.red::after { background: var(--accent3); }
+  .stat:hover::after { transform: scaleX(1); }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 1px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-value.gold { color: var(--accent); }
+  .stat-value.green { color: var(--accent2); }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Section Headers */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Income Block */
+  .income-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .income-item {
+    background: var(--surface);
+    padding: 14px;
+  }
+
+  .income-name {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .income-amount {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    color: var(--text);
+  }
+
+  .income-item.total { background: #f0f4ff; }
+  .income-item.total .income-amount { color: var(--accent); font-size: 30px; }
+
+  /* Contribution rows */
+  .contrib-block {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .contrib-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+
+  .contrib-row:last-child { border-bottom: none; }
+
+  .contrib-who {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    width: 60px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .contrib-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--dim);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .contrib-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 1s ease;
+  }
+
+  .contrib-bar.kim { background: var(--accent2); }
+
+  .contrib-amount {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--text);
+    width: 70px;
+    text-align: right;
+  }
+
+  .contrib-note {
+    font-size: 10px;
+    color: var(--muted);
+    width: 90px;
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Spending Routing */
+  .routing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .route-card {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .route-card::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .route-card.command::before { background: var(--accent); }
+  .route-card.spend::before { background: #7b68ee; }
+  .route-card.save::before { background: var(--accent2); }
+
+  .route-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .route-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .route-bank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .route-desc {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Buffer Tracker */
+  .buffer-block {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    background: var(--surface);
+    margin-bottom: 24px;
+  }
+
+  .buffer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .buffer-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  .buffer-total {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .buffer-total span {
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  .goal-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .goal-label {
+    font-size: 12px;
+    color: var(--text);
+    width: 100px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .goal-track {
+    flex: 1;
+    height: 6px;
+    background: var(--dim);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .goal-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .goal-fill.credit { background: #7b68ee; }
+  .goal-fill.move { background: var(--accent2); }
+  .goal-fill.cushion { background: #888; }
+
+  .goal-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 40px;
+    text-align: right;
+  }
+
+  /* Input fields */
+  .goal-input {
+    background: var(--dim);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 4px 8px;
+    width: 70px;
+    text-align: right;
+  }
+
+  .goal-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #1a1a0f;
+  }
+
+  /* Weekly check section */
+  .checklist {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .check-item:last-child { border-bottom: none; }
+  .check-item:hover { background: #f0f0f0; }
+  .check-item.done { opacity: 0.5; }
+  .check-item.done .check-text { text-decoration: line-through; }
+
+  .check-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--muted);
+    border-radius: 2px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--accent2);
+    transition: all 0.15s;
+  }
+
+  .check-item.done .check-box {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #000;
+  }
+
+  .check-text {
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .check-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    background: var(--dim);
+    color: var(--muted);
+  }
+
+  /* Car goal progress */
+  .car-block {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    background: var(--surface);
+    margin-bottom: 24px;
+  }
+
+  .car-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .car-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: var(--text);
+  }
+
+  .car-deadline {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent3);
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .big-bar {
+    height: 12px;
+    background: var(--dim);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .big-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #f0cc6e);
+    border-radius: 6px;
+    transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .car-stats {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .car-stats .saved { color: var(--accent); }
+
+  /* Credit Score */
+  .credit-block {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    background: var(--surface);
+    margin-bottom: 32px;
+  }
+
+  .credit-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .credit-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    color: var(--text);
+    line-height: 1;
+    letter-spacing: 2px;
+    min-width: 120px;
+  }
+
+  .credit-right { flex: 1; }
+
+  .credit-target {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .credit-target span { color: var(--accent2); }
+
+  .credit-bar {
+    height: 6px;
+    background: var(--dim);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .credit-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 1.5s ease;
+  }
+
+  .credit-range {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  /* Footer */
+  .footer {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .wrap > * {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .wrap > *:nth-child(1) { animation-delay: 0.05s; }
+  .wrap > *:nth-child(2) { animation-delay: 0.1s; }
+  .wrap > *:nth-child(3) { animation-delay: 0.15s; }
+  .wrap > *:nth-child(4) { animation-delay: 0.2s; }
+  .wrap > *:nth-child(5) { animation-delay: 0.25s; }
+  .wrap > *:nth-child(6) { animation-delay: 0.3s; }
+  .wrap > *:nth-child(7) { animation-delay: 0.35s; }
+  .wrap > *:nth-child(8) { animation-delay: 0.4s; }
+  .wrap > *:nth-child(9) { animation-delay: 0.45s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="title-block">
+      <h1>COMMAND <span>CENTER</span></h1>
+      <p>Weekly Financial Review · Brian Word</p>
+    </div>
+    <div class="week-selector">
+      <span class="week-label" id="weekLabel"></span>
+      <span id="dateLabel"></span>
+    </div>
+  </div>
+
+  <!-- Top Stats -->
+  <div>
+    <div class="section-label">Monthly Snapshot</div>
+    <div class="status-bar">
+      <div class="stat">
+        <div class="stat-label">Household Funded</div>
+        <div class="stat-value gold">$6,000</div>
+        <div class="stat-sub">Brian $4K + Kim $2K</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Household Bills</div>
+        <div class="stat-value">$5,751</div>
+        <div class="stat-sub">Fixed bills only · no subs</div>
+      </div>
+      <div class="stat green">
+        <div class="stat-label">Brian's Build Stack</div>
+        <div class="stat-value green">$1,400</div>
+        <div class="stat-sub">$700 x 2 checks · yours</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Income Sources -->
+  <div>
+    <div class="section-label">TD Bank Operating Flow</div>
+    <div class="income-grid">
+      <div class="income-item">
+        <div class="income-name">→ TD Bank</div>
+        <div class="income-amount">$3,000</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;">$3K per check · bills</div>
+      </div>
+      <div class="income-item">
+        <div class="income-name">Kim floors</div>
+        <div class="income-amount">$2,000</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;">$1K per check · her min</div>
+      </div>
+      <div class="income-item total">
+        <div class="income-name">TD Total</div>
+        <div class="income-amount">$6,000</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);margin-top:4px;">covers all bills</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Itemized Bills -->
+  <div>
+    <div class="section-label">Fixed Bills — TD Bank <span style="float:right;color:var(--accent);">$5,751/mo</span></div>
+    <div class="contrib-block">
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Rent — Patapsco Glen</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$3,200</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Q7 — Bridgecrest</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$698</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">T-Mobile (3 lines)</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$224</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">BGE Electric</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$218</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Progressive <span style="font-size:9px;color:var(--accent3);font-family:'DM Mono',monospace;">reinstate</span></div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$286</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Groceries</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$1,000</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Internet — Fios</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$70</div></div>
+    </div>
+
+    <div class="section-label" style="margin-top:16px;">Subscriptions — Card <span style="float:right;color:#7b68ee;">$54.98/mo</span></div>
+    <div class="contrib-block">
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Apple One</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$19.99</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">AppleCare One <span style="font-size:9px;color:var(--accent2);font-family:'DM Mono',monospace;">new</span></div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$19.99</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Xbox Live</div><div style="flex:1"></div><div class="contrib-amount" style="font-size:16px;">$14.99</div></div>
+    </div>
+  </div>
+
+  <!-- Money Routing -->
+  <div>
+    <div class="section-label">Account Routing</div>
+    <div class="routing-grid">
+      <div class="route-card command">
+        <div class="route-icon">🏦</div>
+        <div class="route-name">Command</div>
+        <div class="route-bank">TD Bank</div>
+        <div class="route-desc">$3K in biweekly. $5,751 in fixed bills. No subscriptions.</div>
+      </div>
+      <div class="route-card spend">
+        <div class="route-icon">💳</div>
+        <div class="route-name">Daily Spend</div>
+        <div class="route-bank">Indigo</div>
+        <div class="route-desc">Subscriptions + daily spend. Pay before 20th & 24th.</div>
+      </div>
+      <div class="route-card save">
+        <div class="route-icon">📈</div>
+        <div class="route-name">Savings</div>
+        <div class="route-bank">Schwab</div>
+        <div class="route-desc">Investments + excess savings. Roth IRA opens Jan 2027.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Personal Expenses -->
+  <div>
+    <div class="section-label">Personal Monthly — $1,400 Buffer <span style="float:right;color:var(--accent);">$1,335 / $1,400</span></div>
+    <div class="contrib-block">
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Grooming</div><div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">haircut + mani/pedi</div><div class="contrib-amount" style="font-size:16px;">$110</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Car Oil</div><div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">top-off · staging post-move</div><div class="contrib-amount" style="font-size:16px;">$50</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Clothing</div><div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">you · disciplined</div><div class="contrib-amount" style="font-size:16px;">$350</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Entertainment</div><div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">kids + solo · movies/events</div><div class="contrib-amount" style="font-size:16px;">$200</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Kids Shoes</div><div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">you cover shoes · she covers clothes</div><div class="contrib-amount" style="font-size:16px;">$225</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Flowers</div><div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">weekly · wife</div><div class="contrib-amount" style="font-size:16px;">$25</div></div>
+      <div class="contrib-row"><div class="contrib-who" style="width:180px;color:var(--text);">Christmas Fund</div><div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">$3K goal · 8 months out</div><div class="contrib-amount" style="font-size:16px;">$375</div></div>
+      <div class="contrib-row" style="background:#f0f4ff;">
+        <div class="contrib-who" style="width:180px;color:var(--accent);">Total</div>
+        <div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">card floats · pay before statement</div>
+        <div class="contrib-amount" style="font-size:16px;color:var(--accent);">$1,335</div>
+      </div>
+      <div class="contrib-row" style="background:#f0faf4;">
+        <div class="contrib-who" style="width:180px;color:var(--accent2);">Remaining</div>
+        <div style="flex:1;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">credit · move · cushion</div>
+        <div class="contrib-amount" style="font-size:16px;color:var(--accent2);">$65</div>
+      </div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;padding:0 4px;">
+      Anniversary · birthday · holidays → quarterly bonus. Real ceiling: make more money.
+    </div>
+  </div>
+
+
+
+  <!-- Immediate Debts -->
+  <div>
+    <div class="section-label">Immediate Debts</div>
+    <div class="contrib-block">
+      <div class="contrib-row">
+        <div class="contrib-who" style="width:180px;color:var(--text);">BGE — L J Ross</div>
+        <div style="flex:1"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent2);margin-right:10px;">pay for delete</div>
+        <div class="contrib-amount" style="font-size:16px;color:var(--accent3);">$1,050</div>
+      </div>
+      <div class="contrib-row">
+        <div class="contrib-who" style="width:180px;color:var(--text);">Verizon — Jefferson Capital</div>
+        <div style="flex:1"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);margin-right:10px;">falls off Dec</div>
+        <div class="contrib-amount" style="font-size:16px;color:var(--accent3);">$3,805</div>
+      </div>
+      <div class="contrib-row">
+        <div class="contrib-who" style="width:180px;color:var(--text);">Q7 Repair (shop)</div>
+        <div style="flex:1"></div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);margin-right:10px;">insurance pending</div>
+        <div class="contrib-amount" style="font-size:16px;color:var(--accent3);">$6,716</div>
+      </div>
+      <div class="contrib-row">
+        <div class="contrib-who" style="width:180px;color:var(--text);">Q7 Negative Equity</div>
+        <div style="flex:1"></div>
+        <div class="contrib-amount" style="font-size:16px;color:var(--accent3);">~$12,000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div>
+    <div class="section-label">12-Month Timeline</div>
+    <div class="contrib-block">
+      <div class="contrib-row" style="align-items:flex-start;gap:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);width:44px;flex-shrink:0;">APR</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Reinstate Progressive · pay-for-delete BGE · follow up Q7 insurance · pull Kim's credit</div>
+      </div>
+      <div class="contrib-row" style="align-items:flex-start;gap:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);width:44px;flex-shrink:0;">MAY</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Apply at Bozzuto · cancel T-Mobile protections · sign up AppleCare One</div>
+      </div>
+      <div class="contrib-row" style="align-items:flex-start;gap:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);width:44px;flex-shrink:0;">JUN</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Quarterly bonus ~$1,491 hits · Q7 back from shop · payment history stacking</div>
+      </div>
+      <div class="contrib-row" style="align-items:flex-start;gap:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);width:44px;flex-shrink:0;">JUL</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Reassess car situation · 3-4 months clean Audi history by now · credit stronger</div>
+      </div>
+      <div class="contrib-row" style="align-items:flex-start;gap:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);width:44px;flex-shrink:0;">DEC</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Jefferson Capital falls off credit · score jumps significantly</div>
+      </div>
+      <div class="contrib-row" style="align-items:flex-start;gap:16px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent2);width:44px;flex-shrink:0;">2027</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Open Roth IRA at Schwab · begin contributions · max = $7K/year</div>
+      </div>
+      <div class="contrib-row" style="align-items:flex-start;gap:16px;border-bottom:none;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent2);width:44px;flex-shrink:0;"></div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">Forever home search — land, outdoor kitchen, fenced yard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credit Score -->
+  <div>
+    <div class="section-label">Credit Recovery</div>
+    <div class="credit-block">
+      <div class="credit-row">
+        <div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Current Score</div>
+          <div class="credit-score" id="scoreDisplay">—</div>
+          <input id="creditScore" type="number" value="" placeholder="Enter score" min="300" max="850"
+            oninput="updateCredit()" 
+            style="background: var(--dim); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 11px; padding: 4px 8px; width: 110px; margin-top: 6px;">
+        </div>
+        <div class="credit-right">
+          <div class="credit-target">Target: <span>750+</span></div>
+          <div class="credit-bar">
+            <div class="credit-fill" id="creditBar" style="width: 0%"></div>
+          </div>
+          <div class="credit-range">
+            <span>300 (Poor)</span>
+            <span id="creditStatus" style="color: var(--accent);">Enter score</span>
+            <span>850 (Excellent)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Checklist -->
+  <div>
+    <div class="section-label">Weekly 2-Minute Check</div>
+    <div class="checklist" id="checklist">
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box">✓</div>
+        <div class="check-text">TD Bank balance reviewed — bills covered</div>
+        <div class="check-tag">Bills</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box">✓</div>
+        <div class="check-text">Indigo card balance confirmed low</div>
+        <div class="check-tag">Credit</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box">✓</div>
+        <div class="check-text">Buffer accounted for — excess only goes to Schwab</div>
+        <div class="check-tag">Buffer</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box">✓</div>
+        <div class="check-text">Card paid before statement date (20th or 24th)</div>
+        <div class="check-tag">Credit</div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box">✓</div>
+        <div class="check-text">No unplanned transfers out of TD</div>
+        <div class="check-tag">Discipline</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Net Worth Tracker -->
+  <div>
+    <div class="section-label">Net Worth Tracker</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <!-- Assets -->
+      <div class="contrib-block" style="margin-bottom:0;">
+        <div class="contrib-row" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--accent2);font-weight:600;">Assets</div>
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">Q7 Market Value</div>
+          <input type="number" placeholder="0" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="a1">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">Schwab Balance</div>
+          <input type="number" placeholder="0" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="a2">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">Cash on Hand</div>
+          <input type="number" placeholder="0" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="a3">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">Business Equity</div>
+          <input type="number" placeholder="0" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="a4">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;background:#f0faf4;">
+          <div style="flex:1;font-size:12px;color:var(--accent2);font-weight:600;">Total Assets</div>
+          <div id="totalAssets" style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent2);">$0</div>
+        </div>
+      </div>
+
+      <!-- Liabilities -->
+      <div class="contrib-block" style="margin-bottom:0;">
+        <div class="contrib-row" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--accent3);font-weight:600;">Liabilities</div>
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">Q7 Loan Balance</div>
+          <input type="number" placeholder="0" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="l1">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">BGE Collection</div>
+          <input type="number" value="1050" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="l2">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">Verizon Collection</div>
+          <input type="number" value="3805" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="l3">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;">
+          <div style="flex:1;font-size:12px;color:var(--text);">Q7 Repair</div>
+          <input type="number" value="6716" oninput="calcNetWorth()"
+            style="background:var(--dim);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;padding:3px 6px;width:80px;text-align:right;" id="l4">
+        </div>
+        <div class="contrib-row" style="padding:10px 14px;background:#fff5f5;">
+          <div style="flex:1;font-size:12px;color:var(--accent3);font-weight:600;">Total Liabilities</div>
+          <div id="totalLiabilities" style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent3);">$11,571</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Net Worth Result -->
+    <div style="border:1px solid var(--border);border-radius:4px;padding:20px;background:var(--surface);text-align:center;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;">Current Net Worth</div>
+      <div id="netWorth" style="font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:2px;color:var(--accent3);">-$11,571</div>
+      <div id="netWorthNote" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:6px;">Enter assets above to see full picture</div>
+    </div>
+  </div>
+
+  <div class="footer">Updated weekly · Brian Word Financial System · April 2026</div>
+
+</div>
+
+<script>
+  // Net Worth Calculator
+  function calcNetWorth() {
+    const assets = ['a1','a2','a3','a4'].reduce((s,id) => s + (parseInt(document.getElementById(id).value)||0), 0);
+    const liabilities = ['l1','l2','l3','l4'].reduce((s,id) => s + (parseInt(document.getElementById(id).value)||0), 0);
+    const nw = assets - liabilities;
+    document.getElementById('totalAssets').textContent = '$' + assets.toLocaleString();
+    document.getElementById('totalLiabilities').textContent = '$' + liabilities.toLocaleString();
+    const el = document.getElementById('netWorth');
+    el.textContent = (nw < 0 ? '-$' : '$') + Math.abs(nw).toLocaleString();
+    el.style.color = nw >= 0 ? 'var(--accent2)' : 'var(--accent3)';
+    document.getElementById('netWorthNote').textContent = nw >= 0 ? 'Positive. Keep stacking.' : 'Negative. Normal. Close the gap daily.';
+  }
+  calcNetWorth();
+
+  // Date setup
+  const now = new Date();
+  const weekNum = Math.ceil(((now - new Date(now.getFullYear(), 0, 1)) / 86400000 + 1) / 7);
+  document.getElementById('weekLabel').textContent = `Week ${weekNum}`;
+  document.getElementById('dateLabel').textContent = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+
+
+
+
+  // Credit score
+  function updateCredit() {
+    const score = parseInt(document.getElementById('creditScore').value) || 0;
+    if (score < 300 || score > 850) return;
+    document.getElementById('scoreDisplay').textContent = score;
+    const pct = ((score - 300) / 550) * 100;
+    document.getElementById('creditBar').style.width = pct + '%';
+    let status = score >= 750 ? '🎯 Target Reached' : score >= 700 ? 'Good — Almost There' : score >= 650 ? 'Fair — Keep Going' : 'Rebuilding';
+    document.getElementById('creditStatus').textContent = status;
+    document.getElementById('creditStatus').style.color = score >= 750 ? 'var(--accent2)' : score >= 700 ? 'var(--accent)' : 'var(--accent3)';
+  }
+
+  // Checklist toggle
+  function toggleCheck(el) {
+    el.classList.toggle('done');
+  }
+
+
+</script>
+</body>
+</html>
